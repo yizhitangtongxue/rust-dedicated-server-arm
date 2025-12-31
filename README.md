@@ -66,4 +66,5 @@ SteamCMD 的缓存保存在 `steamcmd-data` 文件夹中。
     - 集成 Box64 运行 RustDedicated (64位)。
     - 支持 Oracle Cloud A1 (ARM64) 等平台。
     - 自动化安装与更新流程。
+    - 支持 Rust+ 伴侣应用 (默认端口 28082)。
 
