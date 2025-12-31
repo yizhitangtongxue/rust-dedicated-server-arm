@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     software-properties-common \
     gnupg2 \
     ca-certificates \
+    gcc-arm-linux-gnueabihf \
     && rm -rf /var/lib/apt/lists/*
 
 # Enable 32-bit ARM architecture (armhf) for Box86
@@ -33,6 +34,7 @@ RUN dpkg --add-architecture armhf && \
 # For now we rely on Box64's ability to wrap native libs.
 RUN apt-get update && apt-get install -y \
     libsqlite3-0 \
+    libgoogle-perftools4 \
     && rm -rf /var/lib/apt/lists/*
 
 # Build Box86 (for SteamCMD)
