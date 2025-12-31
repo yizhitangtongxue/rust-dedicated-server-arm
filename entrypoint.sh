@@ -33,8 +33,8 @@ if [ "${RUST_APP_UPDATE}" = "1" ]; then
     cd /home/steam/steamcmd
     
     # Run steamcmd with box86
-    # We might need to specific +@sSteamCmdForcePlatformType linux
-    box86 ./steamcmd.sh \
+    # We directly target the x86 32-bit binary to avoid wrapper script confusion
+    box86 ./linux32/steamcmd \
         +@sSteamCmdForcePlatformType linux \
         +force_install_dir /home/steam/rust \
         +login anonymous \
