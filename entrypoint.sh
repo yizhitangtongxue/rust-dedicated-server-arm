@@ -15,6 +15,8 @@ RUST_SERVER_WORLDSIZE="${RUST_SERVER_WORLDSIZE:-3000}"
 RUST_SERVER_MAXPLAYERS="${RUST_SERVER_MAXPLAYERS:-50}"
 RUST_SERVER_SAVEINTERVAL="${RUST_SERVER_SAVEINTERVAL:-600}"
 RUST_SERVER_SEED="${RUST_SERVER_SEED:-}" # Empty means random
+RUST_APP_PORT="${RUST_APP_PORT:-28082}"
+RUST_APP_PUBLICIP="${RUST_APP_PUBLICIP:-}" # Optional, for +app.publicip
 RUST_APP_UPDATE="${RUST_APP_UPDATE:-1}"
 
 echo ">>> Starting Rust Server on ARM64 (Box64/Box86 environment)"
@@ -66,6 +68,11 @@ ARGS="$ARGS +server.headerimage \"$RUST_SERVER_BANNER_URL\""
 ARGS="$ARGS +server.worldsize $RUST_SERVER_WORLDSIZE"
 ARGS="$ARGS +server.maxplayers $RUST_SERVER_MAXPLAYERS"
 ARGS="$ARGS +server.saveinterval $RUST_SERVER_SAVEINTERVAL"
+ARGS="$ARGS +app.port $RUST_APP_PORT"
+
+if [ ! -z "$RUST_APP_PUBLICIP" ]; then
+    ARGS="$ARGS +app.publicip $RUST_APP_PUBLICIP"
+fi
 
 if [ ! -z "$RUST_SERVER_SEED" ]; then
     ARGS="$ARGS +server.seed $RUST_SERVER_SEED"

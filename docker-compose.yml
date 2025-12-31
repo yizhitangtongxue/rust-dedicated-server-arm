@@ -9,6 +9,7 @@ services:
       - "28015:28015/udp"
       - "28016:28016/udp"
       - "28017:28017/tcp"
+      - "28082:28082/tcp"
     volumes:
       - ./server-data:/home/steam/rust
       # Optional: Cache steamcmd to avoid redownloading on container rebuild
@@ -17,6 +18,7 @@ services:
       - RUST_SERVER_NAME=My Dockerized ARM Rust Server
       - RUST_RCON_PASSWORD=change_me_please
       - RUST_SERVER_MAXPLAYERS=10
+      - RUST_APP_PORT=28082
       - RUST_SERVER_WORLDSIZE=3000
       # - RUST_SERVER_SEED=12345
     ulimits:

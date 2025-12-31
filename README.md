@@ -42,6 +42,7 @@ docker-compose logs -f
 | `RUST_SERVER_MAXPLAYERS` | 50 | 最大玩家数 |
 | `RUST_SERVER_WORLDSIZE` | 3000 | 地图大小 (建议 ARM 设备不要超过 3000) |
 | `RUST_SERVER_SEED` | (随机) | 地图种子 |
+| `RUST_APP_PORT` | 28082 | Rust+ App 端口 (TCP) |
 | `RUST_APP_UPDATE` | 1 | 每次启动是否检查更新 (1=是, 0=否) |
 
 ### 4. 数据持久化
@@ -51,7 +52,18 @@ SteamCMD 的缓存保存在 `steamcmd-data` 文件夹中。
 ## 注意事项
 1. **性能**: 虽然 Box64 性能惊人，但转译必然有损耗。建议分配至少 4 核心 CPU 和 8GB 内存。
 2. **Swap**: Rust Server 吃内存很凶，建议在宿主机上配置至少 8GB 的 Swap 空间，防止 OOM。
-3. **防火墙**: 记得在云服务商的防火墙（如 Oracle Security List）中开放 UDP 28015, 28016 和 TCP 28017。
+3. **防火墙**: 记得在云服务商的防火墙（如 Oracle Security List）中开放 UDP 28015, 28016 和 TCP 28017, 28082。
 
 ## 许可证
 本项目代码 MIT 开源。Rust 游戏本身受 Facepunch Studios 许可限制。
+
+## 更新日志 (Changelog)
+
+### v1.0.0 (2025-12-31)
+- **初始化项目**: 创建 Docker 版本 Rust Server 解决方案。
+- **核心功能**:
+    - 集成 Box86 运行 SteamCMD (32位)。
+    - 集成 Box64 运行 RustDedicated (64位)。
+    - 支持 Oracle Cloud A1 (ARM64) 等平台。
+    - 自动化安装与更新流程。
+
