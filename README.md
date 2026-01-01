@@ -10,17 +10,27 @@
 - `Dockerfile`: 构建包含 Box86 和 Box64 环境的镜像。
 - `entrypoint.sh`: 容器启动脚本，处理 SteamCMD 更新和服务器启动。
 - `docker-compose.yml`: 用于快速启动服务的编排文件。
+- `.env`: 环境变量配置文件。
+- `.env.example`: 环境变量示例文件。
 
 ## 快速开始
 
-### 1. 构建镜像
+### 1. 配置环境
+复制示例配置文件并进行修改：
+```bash
+cp .env.example .env
+nano .env
+```
+请务必修改 `RUST_RCON_PASSWORD`。
+
+### 2. 构建镜像
 由于需要编译 Box86 和 Box64，构建过程可能需要几分钟到十几分钟（取决于 CPU 性能）。
 
 ```bash
 docker-compose build
 ```
 
-### 2. 启动服务器
+### 3. 启动服务器
 
 ```bash
 docker-compose up -d
@@ -32,39 +42,49 @@ docker-compose up -d
 docker-compose logs -f
 ```
 
-### 3. 配置
-你可以在 `docker-compose.yml` 中修改环境变量来配置服务器：
+## 网络配置 (Host Mode)
+为了获得最佳性能和最简单的网络配置，本项目现在默认使用 Docker 的 `host` 网络模式。这意味着容器将直接共享宿主机的网络栈。
 
-| 变量名 | 默认值 | 说明 |
+你需要确保宿主机开启以下端口：
+
+| 端口 | 协议 | 说明 |
 |---|---|---|
-| `RUST_SERVER_NAME` | Rust Server Docker | 服务器名称 |
-| `RUST_RCON_PASSWORD` | docker | RCON 管理密码 (务必修改) |
-| `RUST_SERVER_MAXPLAYERS` | 50 | 最大玩家数 |
-| `RUST_SERVER_WORLDSIZE` | 3000 | 地图大小 (建议 ARM 设备不要超过 3000) |
-| `RUST_SERVER_SEED` | (随机) | 地图种子 |
-| `RUST_APP_PORT` | 28082 | Rust+ App 端口 (TCP) |
-| `RUST_APP_UPDATE` | 1 | 每次启动是否检查更新 (1=是, 0=否) |
+| `28015` | UDP | Rust 游戏主端口 |
+| `28016` | TCP | RCON 管理端口 |
+| `27015` | UDP | Steam 查询端口 (用于显示在服务器列表) |
+| `28083` | TCP | Rust+ 伴侣应用端口 |
 
 ### 4. 数据持久化
 游戏数据保存在当前目录下的 `server-data` 文件夹中。
 SteamCMD 的缓存保存在 `steamcmd-data` 文件夹中。
 
+## 环境变量说明
+详细配置请参考 `.env` 文件。
+
+| 变量名 | 默认值 | 说明 |
+|---|---|---|
+| `RUST_SERVER_NAME` | My Dockerized ARM Rust Server | 服务器名称 |
+| `RUST_SERVER_LEVEL` | Procedural Map | 地图类型 |
+| `RUST_RCON_PASSWORD` | change_me_please | RCON 密码 |
+| `RUST_SERVER_MAXPLAYERS` | 10 | 最大玩家数 |
+| `RUST_SERVER_WORLDSIZE` | 3000 | 地图尺寸 (建议 ARM 设备不要过大) |
+| `RUST_SERVER_PORT` | 28015 | 游戏端口 (UDP) |
+| `RUST_RCON_PORT` | 28016 | RCON 端口 (TCP) |
+| `RUST_SERVER_QUERYPORT` | 27015 | 查询端口 (UDP) |
+| `RUST_APP_PORT` | 28083 | Rust+ 端口 (TCP) |
+
 ## 注意事项
 1. **性能**: 虽然 Box64 性能惊人，但转译必然有损耗。建议分配至少 4 核心 CPU 和 8GB 内存。
 2. **Swap**: Rust Server 吃内存很凶，建议在宿主机上配置至少 8GB 的 Swap 空间，防止 OOM。
-3. **防火墙**: 记得在云服务商的防火墙（如 Oracle Security List）中开放 UDP 28015, 28016 和 TCP 28017, 28082。
+    ```bash
+    # 创建 8G Swap
+    sudo fallocate -l 8G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+    ```
+3. **Rust+**: 如果你想使用 Rust+ App，请确保 `RUST_APP_PORT` 已开放，并且按照官方教程进行配对。
 
 ## 许可证
 本项目代码 MIT 开源。Rust 游戏本身受 Facepunch Studios 许可限制。
-
-## 更新日志 (Changelog)
-
-### v1.0.0 (2025-12-31)
-- **初始化项目**: 创建 Docker 版本 Rust Server 解决方案。
-- **核心功能**:
-    - 集成 Box86 运行 SteamCMD (32位)。
-    - 集成 Box64 运行 RustDedicated (64位)。
-    - 支持 Oracle Cloud A1 (ARM64) 等平台。
-    - 自动化安装与更新流程。
-    - 支持 Rust+ 伴侣应用 (默认端口 28082)。
-
