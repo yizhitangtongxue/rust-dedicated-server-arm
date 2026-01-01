@@ -35,6 +35,7 @@ RUN dpkg --add-architecture armhf && \
 RUN apt-get update && apt-get install -y \
     libsqlite3-0 \
     libgoogle-perftools4 \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # Build Box86 (for SteamCMD)
@@ -59,7 +60,7 @@ RUN git clone https://github.com/ptitSeb/box64 && \
 
 # Setup user
 RUN useradd -m -d /home/steam -s /bin/bash steam
-USER steam
+# USER steam (We stay as root to fix permissions in entrypoint)
 WORKDIR /home/steam
 
 # Create directory for SteamCMD and Server

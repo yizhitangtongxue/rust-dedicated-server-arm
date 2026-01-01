@@ -39,9 +39,9 @@ if [ "${RUST_APP_UPDATE}" = "1" ]; then
         chmod +x steamcmd.sh linux32/steamcmd
     fi
     
-    # Run steamcmd with box86
+    # Run steamcmd with box86 as steam user
     # We directly target the x86 32-bit binary to avoid wrapper script confusion
-    box86 ./linux32/steamcmd \
+    gosu steam box86 ./linux32/steamcmd \
         +@sSteamCmdForcePlatformType linux \
         +force_install_dir /home/steam/rust \
         +login anonymous \
@@ -90,4 +90,8 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd):$(pwd)/RustDedicated_Data/Plugins
 
 # Run with box64
 # We use exec to let the server process take over PID 1
-exec box64 ./RustDedicated $ARGS
+echo ">>> Checking permissions..."
+chown -R steam:steam /home/steam
+
+# Switch to steam user for the rest of the script
+exec gosu steam box64 ./RustDedicated $ARGS
