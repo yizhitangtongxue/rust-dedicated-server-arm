@@ -16,7 +16,8 @@ RUN apt-get update && apt-get install -y \
     gnupg2 \
     ca-certificates \
     gcc-arm-linux-gnueabihf \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* && \
+    ln -s /usr/bin/python3 /usr/bin/python
 
 # Enable 32-bit ARM architecture (armhf) for Box86
 RUN dpkg --add-architecture armhf && \
@@ -27,6 +28,8 @@ RUN dpkg --add-architecture armhf && \
     libncurses5:armhf \
     libgcc-s1:armhf \
     libx11-6:armhf \
+    libc6-dev:armhf \
+    libstdc++-11-dev:armhf \
     && rm -rf /var/lib/apt/lists/*
 
 # Install x86_64 libraries for Rust Server (via Box64)

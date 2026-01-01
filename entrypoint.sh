@@ -19,34 +19,56 @@ RUST_APP_PORT="${RUST_APP_PORT:-28082}"
 RUST_APP_PUBLICIP="${RUST_APP_PUBLICIP:-}" # Optional, for +app.publicip
 RUST_APP_UPDATE="${RUST_APP_UPDATE:-1}"
 
+# Check for box86 and box64
+if ! command -v box86 &> /dev/null; then
+    echo "ERROR: box86 not found in PATH"
+    exit 1
+fi
+if ! command -v box64 &> /dev/null; then
+    echo "ERROR: box64 not found in PATH"
+    exit 1
+fi
+
 echo ">>> Starting Rust Server on ARM64 (Box64/Box86 environment)"
 echo ">>> Host Architecture: $(uname -m)"
 
 # Update Rust Server
 if [ "${RUST_APP_UPDATE}" = "1" ]; then
     echo ">>> Updating Rust Server (AppID 258550)..."
-    # Use box86 to run the 32-bit steamcmd
-    # Note: steamcmd itself might try to download a 64-bit version if it detects a 64-bit OS, 
-    # but the initial bootstrap is usually 32-bit.
-    # We force the platform if needed, but standard update usually works.
     
     cd /home/steam/steamcmd
     
     # Check if steamcmd exists (because volume mount might hide the pre-downloaded files)
-    if [ ! -f "./steamcmd.sh" ]; then
+    if [ ! -f "./steamcmd.sh" ] && [ ! -f "./linux32/steamcmd" ]; then
         echo ">>> SteamCMD not found (likely due to volume mount). Downloading..."
         curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
-        chmod +x steamcmd.sh linux32/steamcmd
+        chmod +x steamcmd.sh
+        if [ -f "./linux32/steamcmd" ]; then
+            chmod +x linux32/steamcmd
+        fi
     fi
     
     # Run steamcmd with box86 as steam user
     # We directly target the x86 32-bit binary to avoid wrapper script confusion
-    gosu steam box86 ./linux32/steamcmd \
-        +@sSteamCmdForcePlatformType linux \
-        +force_install_dir /home/steam/rust \
-        +login anonymous \
-        +app_update 258550 validate \
-        +quit
+    if [ -f "./linux32/steamcmd" ]; then
+        gosu steam box86 ./linux32/steamcmd \
+            +@sSteamCmdForcePlatformType linux \
+            +force_install_dir /home/steam/rust \
+            +login anonymous \
+            +app_update 258550 validate \
+            +quit
+    elif [ -f "./steamcmd.sh" ]; then
+        # Fallback to shell script if binary not directly found (rare)
+        gosu steam box86 ./steamcmd.sh \
+            +@sSteamCmdForcePlatformType linux \
+            +force_install_dir /home/steam/rust \
+            +login anonymous \
+            +app_update 258550 validate \
+            +quit
+    else
+         echo "ERROR: Could not find steamcmd binary even after download."
+         exit 1
+    fi
         
     echo ">>> Update completed."
 fi
