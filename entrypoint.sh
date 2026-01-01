@@ -19,6 +19,8 @@ RUST_APP_PORT="${RUST_APP_PORT:-28083}"
 RUST_APP_PUBLICIP="${RUST_APP_PUBLICIP:-}" # Optional, for +app.publicip
 RUST_APP_UPDATE="${RUST_APP_UPDATE:-1}"
 
+RUST_SERVER_LEVEL="${RUST_SERVER_LEVEL:-Procedural Map}"
+
 # Check for box86 and box64
 if ! command -v box86 &> /dev/null; then
     echo "ERROR: box86 not found in PATH"
@@ -32,6 +34,7 @@ fi
 echo ">>> Starting Rust Server on ARM64 (Box64/Box86 environment)"
 echo ">>> Host Architecture: $(uname -m)"
 echo ">>> Current User: $(id)"
+echo ">>> Server Level: $RUST_SERVER_LEVEL"
 
 # Ensure permissions for volumes
 echo ">>> Fixing permissions for /home/steam/steamcmd and /home/steam/rust..."
@@ -104,6 +107,7 @@ ARGS="$ARGS +rcon.port $RUST_RCON_PORT"
 ARGS="$ARGS +rcon.password \"$RUST_RCON_PASSWORD\""
 ARGS="$ARGS +rcon.web 1"
 ARGS="$ARGS +server.identity \"$RUST_SERVER_IDENTITY\""
+ARGS="$ARGS +server.level \"$RUST_SERVER_LEVEL\""
 ARGS="$ARGS +server.hostname \"$RUST_SERVER_NAME\""
 ARGS="$ARGS +server.description \"$RUST_SERVER_DESCRIPTION\""
 ARGS="$ARGS +server.url \"$RUST_SERVER_URL\""

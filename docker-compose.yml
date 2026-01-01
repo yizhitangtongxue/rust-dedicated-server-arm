@@ -3,25 +3,13 @@ services:
     build: .
     container_name: rust-server
     restart: unless-stopped
-    ports:
-      - "28015:28015/udp"
-      - "28015:28015/tcp" # Sometimes used by RCON fallback or other services
-      - "28016:28016/tcp"
-      - "27015:27015/udp" # Query Port
-      - "28083:28083/tcp" # Rust+ Companion App
+    network_mode: "host"
     volumes:
       - ./server-data:/home/steam/rust
       # Optional: Cache steamcmd to avoid redownloading on container rebuild
       - ./steamcmd-data:/home/steam/steamcmd 
     env_file:
       - .env
-    # environment:
-    #   - RUST_SERVER_NAME=My Dockerized ARM Rust Server
-    #   - RUST_RCON_PASSWORD=change_me_please
-    #   - RUST_SERVER_MAXPLAYERS=10
-    #   - RUST_APP_PORT=28082
-    #   - RUST_SERVER_WORLDSIZE=3000
-    #   # - RUST_SERVER_SEED=12345
     ulimits:
       nofile:
         soft: 65536
