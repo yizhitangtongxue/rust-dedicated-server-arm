@@ -31,6 +31,12 @@ fi
 
 echo ">>> Starting Rust Server on ARM64 (Box64/Box86 environment)"
 echo ">>> Host Architecture: $(uname -m)"
+echo ">>> Current User: $(id)"
+
+# Ensure permissions for volumes
+echo ">>> Fixing permissions for /home/steam/steamcmd and /home/steam/rust..."
+chown -R steam:steam /home/steam/steamcmd
+chown -R steam:steam /home/steam/rust
 
 # Update Rust Server
 if [ "${RUST_APP_UPDATE}" = "1" ]; then
@@ -41,11 +47,19 @@ if [ "${RUST_APP_UPDATE}" = "1" ]; then
     # Check if steamcmd exists (because volume mount might hide the pre-downloaded files)
     if [ ! -f "./steamcmd.sh" ] && [ ! -f "./linux32/steamcmd" ]; then
         echo ">>> SteamCMD not found (likely due to volume mount). Downloading..."
+        # We download as root, but verify permission to write
+        if [ ! -w . ]; then
+             echo "ERROR: /home/steam/steamcmd is not writable."
+             ls -ld .
+        fi
         curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
         chmod +x steamcmd.sh
         if [ -f "./linux32/steamcmd" ]; then
             chmod +x linux32/steamcmd
         fi
+        
+        # Determine ownership fix after download
+        chown -R steam:steam .
     fi
     
     # Run steamcmd with box86 as steam user
