@@ -1,32 +1,40 @@
-# Rust Server for ARM64 (Docker + Box64)
+# Rust Server for ARM64 (Docker + Box64 + Box86)
 
-This is a Rust game server Docker solution based on [Box64](https://github.com/ptitSeb/box64) and [Box86](https://github.com/ptitSeb/box86). It allows you to run the x86_64 version of the Rust Dedicated Server on ARM64 devices (such as Oracle Cloud A1, Raspberry Pi 5, RK3588, etc.).
+This generates a Docker solution specifically designed for **ARM64** devices (such as **Oracle Cloud Ampere A1**, Raspberry Pi 5, RK3588, etc.) to run the x86_64 version of the Rust Dedicated Server.
 
-## How it Works
-- **Box86**: Runs the 32-bit x86 `steamcmd` to download and update the game server.
-- **Box64**: Runs the 64-bit x86_64 `RustDedicated` executable for the game logic.
+It bridges the architecture gap using:
+- **Box86**: Runs the 32-bit x86 `steamcmd` (for downloading/updating the game).
+- **Box64**: Runs the 64-bit x86_64 `RustDedicated` (the game server itself).
+
+## ⚠️ Real-World Deployment Notes
+
+Before you begin, please acknowledge these realities:
+1.  **Build Time**: The Docker image compiles Box86 and Box64 from source. On a 4-core ARM CPU, `docker-compose build` **can take 15-30 minutes**.
+2.  **First Run**: The container downloads 10GB+ of game files on the first launch. Depending on your network, this **may take 30 minutes to several hours**. Check the logs!
+3.  **Performance Overhead**: Emulation has a CPU cost. It is recommended to keep `World Size` under **3000** and restart the server periodically.
+4.  **Network Mode**: We default to **Host Network** mode to avoid Docker NAT overhead for UDP traffic and simplify port management.
 
 ## Directory Structure
-- `Dockerfile`: Builds the image containing Box86 and Box64 environments.
-- `entrypoint.sh`: Startup script handling SteamCMD updates and server launch.
-- `docker-compose.yml`: Compose file for quick deployment.
-- `.env`: Environment configuration file.
-- `.env.example`: Example environment configuration.
+- `Dockerfile`: Full-stack build script (compiles Box86/64).
+- `entrypoint.sh`: Smart startup script with permission fix, auto-update, and env checks.
+- `docker-compose.yml`: One-click deployment file.
+- `.env`: Configuration file.
 
-## Quick Start
+## Quick Start Configuration
 
-### 1. Configuration
-Copy the example configuration file and edit it:
+### 1. Setup Environment
+Copy and edit the configuration file. **You MUST change the RCON password!**
+
 ```bash
 cp .env.example .env
-nano .env
+vim .env
 ```
-**Important:** Make sure to change `RUST_RCON_PASSWORD`.
 
-### 2. Build Image
-Building Box86 and Box64 from source takes time (a few to several minutes depending on CPU).
+### 2. Build Image (One-time)
+Use `tmux`, `screen` or `nohup` if you are on an unstable SSH connection.
 
 ```bash
+# This is slow. Grab a coffee.
 docker-compose build
 ```
 
@@ -36,55 +44,36 @@ docker-compose build
 docker-compose up -d
 ```
 
-On first run, the container will automatically download Rust Server files via SteamCMD (approx. 10GB+). Please be patient. You can monitor progress via logs:
+### 4. Verify Status
+Don't try to connect immediately. Watch the logs:
 
 ```bash
 docker-compose logs -f
 ```
+Wait until you see `Server Startup Complete`.
 
-## Network Configuration (Host Mode)
- For best performance and simplest configuration, this project defaults to Docker's `host` network mode. The container shares the host's network stack directly.
+## Network Configuration
+This project uses `network_mode: host`. Open these ports directly on your host firewall (and Cloud Security Lists):
 
-Ensure the following ports are open on your host firewall:
-
-| Port | Protocol | Description |
+| Port | Protocol | Usage |
 |---|---|---|
-| `28015` | UDP | Rust Game Port |
-| `28016` | TCP | RCON Port |
-| `27015` | UDP | Steam Query Port (For Server Browser) |
-| `28083` | TCP | Rust+ Companion App Port |
+| `28015` | UDP | **Game Connection** (Core) |
+| `28016` | TCP | **RCON** (Admin tools) |
+| `27015` | UDP | **Steam Query** (Server Browser) |
+| `28083` | TCP | **Rust+ App** (Companion) |
 
-### 4. Data Persistence
-Game data is saved in the local `server-data` directory.
-SteamCMD cache is saved in the local `steamcmd-data` directory.
+> **Oracle Cloud**: Ensure ports are open in the Web Console "Security List" AND the local `iptables/ufw`.
 
-## Environment Variables
-See `.env` for detailed configuration.
+## Troubleshooting
 
-| Variable | Default | Description |
-|---|---|---|
-| `RUST_SERVER_NAME` | My Dockerized ARM Rust Server | Server Name |
-| `RUST_SERVER_LEVEL` | Procedural Map | Map Type |
-| `RUST_RCON_PASSWORD` | change_me_please | RCON Password |
-| `RUST_SERVER_MAXPLAYERS` | 10 | Max Players |
-| `RUST_SERVER_WORLDSIZE` | 3000 | Map Size (Keep <3000 recommended on ARM) |
-| `RUST_SERVER_PORT` | 28015 | Game Port (UDP) |
-| `RUST_RCON_PORT` | 28016 | RCON Port (TCP) |
-| `RUST_SERVER_QUERYPORT` | 27015 | Query Port (UDP) |
-| `RUST_APP_PORT` | 28083 | Rust+ Port (TCP) |
+**Q: `exec format error` at startup?**
+A: Box86/64 isn't catching the binary. Ensure `systemd-binfmt` is active on the host, or rebuild the image properly.
 
-## Notes
-1. **Performance**: Box64 is impressive, but emulation has overhead. At least 4 CPU cores and 8GB RAM are recommended.
-2. **Swap**: Rust Server consumes a lot of RAM. It is highly recommended to configure at least 8GB Swap on the host to prevent OOM.
-    ```bash
-    # Create 8G Swap
-    sudo fallocate -l 8G /swapfile
-    sudo chmod 600 /swapfile
-    sudo mkswap /swapfile
-    sudo swapon /swapfile
-    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-    ```
-3. **Rust+**: To use the Rust+ App, ensure `RUST_APP_PORT` is open and follow official pairing guides.
+**Q: `Permission denied` errors?**
+A: `entrypoint.sh` includes logic to `chown` the `server-data` directory. If it fails, run `sudo chown -R 1000:1000 server-data` on the host.
+
+**Q: Server not showing in browser?**
+A: Double-check UDP port 27015 and 28015. This is almost always a firewall issue.
 
 ## License
-Project code is MIT licensed. Rust game usage is subject to Facepunch Studios licensing.
+MIT License

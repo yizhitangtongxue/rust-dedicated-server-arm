@@ -1,32 +1,40 @@
-# Rust Server for ARM64 (Docker + Box64)
+# Rust Server for ARM64 (Docker + Box64 + Box86)
 
-这是基于 [Box64](https://github.com/ptitSeb/box64) 和 [Box86](https://github.com/ptitSeb/box86) 的 Rust 游戏服务器 Docker 解决方案。它允许你在 ARM64 架构的设备（如 Oracle Cloud A1、树莓派 5、RK3588 等）上运行 x86_64 版本的 Rust Dedicated Server。
+这是专为 **ARM64** 架构设备（如 **Oracle Cloud Ampere A1**、树莓派 5、RK3588 等）设计的 Rust 游戏服务器 Docker 解决方案。
 
-## 原理
-- **Box86**: 用于运行 32 位 x86 的 `steamcmd`，负责下载和更新游戏服务端。
-- **Box64**: 用于运行 64 位 x86_64 的 `RustDedicated`，负责运行游戏逻辑。
+它完美解决了在 ARM 平台上运行 x86_64 架构 Rust Dedicated Server 的难题，核心利用了：
+- **Box86**: 运行 32 位 x86 的 `steamcmd` (用于下载和更新游戏)。
+- **Box64**: 运行 64 位 x86_64 的 `RustDedicated` (游戏主程序)。
+
+## ⚠️ 真实环境部署须知
+
+在开始之前，请务必了解以下客观限制：
+1.  **构建耗时**: Docker 镜像会从源码编译 Box86 和 Box64。在 4 核心 ARM CPU 上，`docker-compose build` **可能需要 15-30 分钟**。请耐心等待。
+2.  **首次启动**: 容器启动后会下载 Rust Server 文件（10GB+）。取决于你的网络速度，首次启动**可能需要 30 分钟到数小时**。请查看日志确认进度。
+3.  **性能损耗**: 二进制指令转译（Emulation）会有 CPU 损耗。建议地图尺寸（World Size）控制在 **3000** 以内，并定期重启。
+4.  **网络模式**: 为避免通过 Docker NAT 转发 UDP 带来的性能问题和端口映射麻烦，本项目默认使用 **Host Network** 模式。
 
 ## 目录结构
-- `Dockerfile`: 构建包含 Box86 和 Box64 环境的镜像。
-- `entrypoint.sh`: 容器启动脚本，处理 SteamCMD 更新和服务器启动。
-- `docker-compose.yml`: 用于快速启动服务的编排文件。
+- `Dockerfile`: 全栈构建脚本（含 Box86/64 编译）。
+- `entrypoint.sh`: 智能启动脚本，具备权限修复、自动更新、Box 环境检测功能。
+- `docker-compose.yml`: 一键部署编排文件。
 - `.env`: 环境变量配置文件。
-- `.env.example`: 环境变量示例文件。
 
-## 快速开始
+## 快速部署流程
 
 ### 1. 配置环境
-复制示例配置文件并进行修改：
+复制并编辑环境变量文件。**必须修改 RCON 密码！**
+
 ```bash
 cp .env.example .env
-nano .env
+vim .env
 ```
-请务必修改 `RUST_RCON_PASSWORD`。
 
-### 2. 构建镜像
-由于需要编译 Box86 和 Box64，构建过程可能需要几分钟到十几分钟（取决于 CPU 性能）。
+### 2. 构建镜像 (一次性)
+推荐使用 `tmux`、`screen` 或 `nohup` 运行，防止断连中断编译。
 
 ```bash
+# 这一步非常慢，请做好心理准备
 docker-compose build
 ```
 
@@ -36,55 +44,50 @@ docker-compose build
 docker-compose up -d
 ```
 
-首次启动时，容器会自动通过 SteamCMD 下载 Rust Server 文件（约 10GB+），请耐心等待。你可以通过查看日志来监控进度：
+### 4. 验证运行
+不要以为启动了就马上能连，请先看日志：
 
 ```bash
 docker-compose logs -f
 ```
+当你看到 `Server Startup Complete` 时，才是真的启动好了。
 
-## 网络配置 (Host Mode)
-为了获得最佳性能和最简单的网络配置，本项目现在默认使用 Docker 的 `host` 网络模式。这意味着容器将直接共享宿主机的网络栈。
+## 网络配置
+本项目使用 `network_mode: host`。你需要直接在宿主机（以及云服务商的安全组/防火墙）上开放以下端口：
 
-你需要确保宿主机开启以下端口：
-
-| 端口 | 协议 | 说明 |
+| 端口 | 协议 | 用途 |
 |---|---|---|
-| `28015` | UDP | Rust 游戏主端口 |
-| `28016` | TCP | RCON 管理端口 |
-| `27015` | UDP | Steam 查询端口 (用于显示在服务器列表) |
-| `28083` | TCP | Rust+ 伴侣应用端口 |
+| `28015` | UDP | **游戏连接** (核心) |
+| `28016` | TCP | **RCON 管理** (用于 RustAdmin 等工具) |
+| `27015` | UDP | **Steam 查询** (让服务器显示在列表中) |
+| `28083` | TCP | **Rust+ App** (手机伴侣应用) |
 
-### 4. 数据持久化
-游戏数据保存在当前目录下的 `server-data` 文件夹中。
-SteamCMD 的缓存保存在 `steamcmd-data` 文件夹中。
+> **注意**: Oracle Cloud 用户必须在网页控制台的 "Security List" 和机器内部的 `iptables/ufw` 同时开放这些端口。
 
-## 环境变量说明
-详细配置请参考 `.env` 文件。
+## 常用运维命令
 
-| 变量名 | 默认值 | 说明 |
-|---|---|---|
-| `RUST_SERVER_NAME` | My Dockerized ARM Rust Server | 服务器名称 |
-| `RUST_SERVER_LEVEL` | Procedural Map | 地图类型 |
-| `RUST_RCON_PASSWORD` | change_me_please | RCON 密码 |
-| `RUST_SERVER_MAXPLAYERS` | 10 | 最大玩家数 |
-| `RUST_SERVER_WORLDSIZE` | 3000 | 地图尺寸 (建议 ARM 设备不要过大) |
-| `RUST_SERVER_PORT` | 28015 | 游戏端口 (UDP) |
-| `RUST_RCON_PORT` | 28016 | RCON 端口 (TCP) |
-| `RUST_SERVER_QUERYPORT` | 27015 | 查询端口 (UDP) |
-| `RUST_APP_PORT` | 28083 | Rust+ 端口 (TCP) |
+**手动强制更新服务器:**
+重启容器即可触发更新检查（默认 `RUST_APP_UPDATE=1`）。
+```bash
+docker-compose restart
+```
 
-## 注意事项
-1. **性能**: 虽然 Box64 性能惊人，但转译必然有损耗。建议分配至少 4 核心 CPU 和 8GB 内存。
-2. **Swap**: Rust Server 吃内存很凶，建议在宿主机上配置至少 8GB 的 Swap 空间，防止 OOM。
-    ```bash
-    # 创建 8G Swap
-    sudo fallocate -l 8G /swapfile
-    sudo chmod 600 /swapfile
-    sudo mkswap /swapfile
-    sudo swapon /swapfile
-    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-    ```
-3. **Rust+**: 如果你想使用 Rust+ App，请确保 `RUST_APP_PORT` 已开放，并且按照官方教程进行配对。
+**进入容器调试:**
+由于是 Host 模式，端口是共用的。
+```bash
+docker-compose exec rust-server /bin/bash
+```
+
+## 故障排查
+
+**Q: 启动报错 `exec format error`?**
+A: 这是 Box86/64 没有正确接管二进制执行。确保宿主机的 `systemd-binfmt` 服务正常，或者重建镜像确保 Docker 内部的 binfmt 配置正确。
+
+**Q: 提示 `Permission denied`?**
+A: `entrypoint.sh` 已经内置了 `chown` 逻辑来修复 `server-data` 的权限。如果依然报错，请尝试手动在宿主机执行 `sudo chown -R 1000:1000 server-data`。
+
+**Q: 服务器搜不到?**
+A: 检查 UDP 27015 和 28015 端口是否在防火墙放行。这是最常见的问题。
 
 ## 许可证
-本项目代码 MIT 开源。Rust 游戏本身受 Facepunch Studios 许可限制。
+MIT License
