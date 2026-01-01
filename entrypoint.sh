@@ -32,6 +32,13 @@ if [ "${RUST_APP_UPDATE}" = "1" ]; then
     
     cd /home/steam/steamcmd
     
+    # Check if steamcmd exists (because volume mount might hide the pre-downloaded files)
+    if [ ! -f "./steamcmd.sh" ]; then
+        echo ">>> SteamCMD not found (likely due to volume mount). Downloading..."
+        curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
+        chmod +x steamcmd.sh linux32/steamcmd
+    fi
+    
     # Run steamcmd with box86
     # We directly target the x86 32-bit binary to avoid wrapper script confusion
     box86 ./linux32/steamcmd \

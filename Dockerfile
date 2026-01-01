@@ -42,7 +42,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /tmp
 RUN git clone https://github.com/ptitSeb/box86 && \
     mkdir box86/build && cd box86/build && \
-    cmake .. -DARM64=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
+    cmake .. -DARM_DYNAREC=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
     make -j$(nproc) && \
     make install && \
     cd /tmp && rm -rf box86
