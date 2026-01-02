@@ -99,7 +99,9 @@ cd /home/steam/rust
 echo ">>> Launching RustDedicated via Box64..."
 
 # Construct launch arguments
-ARGS="-batchmode"
+# Standard Unity flags (Use hyphens)
+ARGS="-batchmode -nographics"
+
 ARGS="$ARGS +server.ip 0.0.0.0"
 ARGS="$ARGS +server.port $RUST_SERVER_PORT"
 ARGS="$ARGS +server.queryport $RUST_SERVER_QUERYPORT"
@@ -116,8 +118,10 @@ ARGS="$ARGS +server.worldsize $RUST_SERVER_WORLDSIZE"
 ARGS="$ARGS +server.maxplayers $RUST_SERVER_MAXPLAYERS"
 ARGS="$ARGS +server.saveinterval $RUST_SERVER_SAVEINTERVAL"
 ARGS="$ARGS +app.port $RUST_APP_PORT"
-# Workaround for Box64 Unity Physics/Occlusion crash
-ARGS="$ARGS +batchmode +server.occlusion 0 +physics.steps 60"
+
+# Critical Fixes for Box64/ARM
+# Note: +server.occlusion 0 is critical to prevent NRE crashes on map generation
+ARGS="$ARGS +server.occlusion 0 +physics.steps 60"
 
 if [ ! -z "$RUST_APP_PUBLICIP" ]; then
     ARGS="$ARGS +app.publicip $RUST_APP_PUBLICIP"
