@@ -35,10 +35,13 @@ RUN dpkg --add-architecture armhf && \
 # Install x86_64 libraries for Rust Server (via Box64)
 # Note: Box64 often uses native arm64 libs where possible, but some specific libs might be needed.
 # For now we rely on Box64's ability to wrap native libs.
+# Also install Mesa graphics libraries for Unity engine software rendering support
 RUN apt-get update && apt-get install -y \
     libsqlite3-0 \
     libgoogle-perftools4 \
     gosu \
+    libgl1-mesa-glx \
+    libgl1-mesa-dri \
     && rm -rf /var/lib/apt/lists/*
 
 # Build Box86 (for SteamCMD)
@@ -82,5 +85,15 @@ ENV LD_LIBRARY_PATH=/lib/i386-linux-gnu:/usr/lib/i386-linux-gnu:/usr/lib/arm-lin
 # Ensure Box86 and Box64 are used
 ENV BOX86_LOG=0
 ENV BOX64_LOG=0
+
+# Box64 environment variables for improved stability with Unity engine
+# These settings use more conservative dynarec options to prevent crashes
+ENV BOX64_DYNAREC_STRONGMEM=3
+ENV BOX64_DYNAREC_BIGBLOCK=0
+ENV BOX64_DYNAREC_SAFEFLAGS=0
+ENV BOX64_DYNAREC_FASTNAN=0
+ENV BOX64_DYNAREC_FASTROUND=0
+ENV BOX64_DYNAREC_X87DOUBLE=1
+ENV BOX64_DYNAREC_BLEEDING_EDGE=0
 
 ENTRYPOINT ["/home/steam/entrypoint.sh"]

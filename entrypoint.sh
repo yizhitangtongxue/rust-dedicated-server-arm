@@ -120,8 +120,15 @@ ARGS="$ARGS +server.saveinterval $RUST_SERVER_SAVEINTERVAL"
 ARGS="$ARGS +app.port $RUST_APP_PORT"
 
 # Critical Fixes for Box64/ARM
-# Note: +server.occlusion 0 is critical to prevent NRE crashes on map generation
-ARGS="$ARGS +server.occlusion 0 +physics.steps 60"
+# Disable multiple Unity/Rust features that cause issues in Box64 environment
+ARGS="$ARGS +server.occlusion 0"           # Disable occlusion culling (prevents NRE in GenerateOcclusionGrid)
+ARGS="$ARGS +physics.steps 60"             # Reduce physics complexity
+ARGS="$ARGS +ai.think false"               # Disable AI processing
+ARGS="$ARGS +ai.move false"                # Disable AI movement
+ARGS="$ARGS +server.stability false"       # Disable stability system
+ARGS="$ARGS +server.plantlightdetection false"  # Disable plant light detection
+ARGS="$ARGS -force-gfx-jobs native"        # Force native graphics jobs
+ARGS="$ARGS -force-glcore"                 # Force OpenGL Core
 
 if [ ! -z "$RUST_APP_PUBLICIP" ]; then
     ARGS="$ARGS +app.publicip $RUST_APP_PUBLICIP"
@@ -133,6 +140,10 @@ fi
 
 # Export LD_LIBRARY_PATH to include the Rust server directory and its plugins
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd):$(pwd)/RustDedicated_Data/Plugins/x86_64
+
+# Force Unity to use software rendering (critical for Box64 compatibility)
+export UNITY_RENDERER=software
+export UNITY_DISABLE_RENDERING=1
 
 # Run with box64
 # We use exec to let the server process take over PID 1
