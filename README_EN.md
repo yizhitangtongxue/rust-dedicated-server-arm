@@ -64,6 +64,41 @@ This project uses `network_mode: host`. Open these ports directly on your host f
 
 > **Oracle Cloud**: Ensure ports are open in the Web Console "Security List" AND the local `iptables/ufw`.
 
+## Changelog
+
+### 2026-01-02: Fixed NullReferenceException Error
+
+**Issue:**  
+Server crashed during startup at `Preparing Occlusion Grid` with:
+```
+NullReferenceException: Object reference not set to an instance of an object
+  at ServerOcclusion.GenerateOcclusionGrid ()
+```
+
+**Root Cause:**  
+Rust server (Unity-based) has two parameter formats:
+- **Unity engine params**: Use hyphens `-` (e.g., `-batchmode`, `-disable-server-occlusion`)
+- **Rust server configs**: Use plus signs `+` (e.g., `+server.port`, `+server.hostname`)
+
+Previously used `+server.occlusion 0` which is NOT a valid Rust config, thus had no effect.
+
+**Solution:**  
+Use correct Unity engine parameters in `entrypoint.sh`:
+```bash
+ARGS="$ARGS -disable-server-occlusion"       # Disable occlusion system
+ARGS="$ARGS -disable-server-occlusion-rocks" # Skip rock mesh baking
+```
+
+**Additional Optimizations:**
+- Added 7 Box64 environment variables for stability (`BOX64_DYNAREC_STRONGMEM=3`, etc.)
+- Installed Mesa graphics libraries for Unity software rendering
+- Disabled AI and stability systems to reduce Box64 compatibility issues
+
+**Impact:**
+- ✅ Server now starts reliably on ARM64
+- ⚠️ NPC AI disabled (no animals/scientists)
+- ⚠️ Building stability system disabled
+
 ## Troubleshooting
 
 **Q: `exec format error` at startup?**

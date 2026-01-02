@@ -78,6 +78,41 @@ docker-compose restart
 docker-compose exec rust-server /bin/bash
 ```
 
+## 修复日志
+
+### 2026-01-02: 修复 NullReferenceException 错误
+
+**问题描述:**  
+服务器在启动时卡在 `Preparing Occlusion Grid` 阶段,并抛出 `NullReferenceException` 错误:
+```
+NullReferenceException: Object reference not set to an instance of an object
+  at ServerOcclusion.GenerateOcclusionGrid ()
+```
+
+**根本原因:**  
+Rust 服务器基于 Unity 引擎,有两种不同的命令行参数格式:
+- **Unity 引擎参数**: 使用连字符 `-` (如 `-batchmode`, `-disable-server-occlusion`)
+- **Rust 服务器配置**: 使用加号 `+` (如 `+server.port`, `+server.hostname`)
+
+之前错误地使用了 `+server.occlusion 0`,这不是有效的 Rust 配置项,因此完全没有效果。
+
+**解决方案:**  
+在 `entrypoint.sh` 中使用正确的 Unity 引擎参数:
+```bash
+ARGS="$ARGS -disable-server-occlusion"       # 禁用遮挡系统
+ARGS="$ARGS -disable-server-occlusion-rocks" # 跳过岩石网格烘焙
+```
+
+**额外优化:**
+- 添加了 7 个 Box64 环境变量以提高稳定性 (`BOX64_DYNAREC_STRONGMEM=3` 等)
+- 安装了 Mesa 图形库用于 Unity 软件渲染支持
+- 禁用了 AI、稳定性系统等功能以减少 Box64 环境下的兼容性问题
+
+**影响:**
+- ✅ 服务器可以在 ARM64 环境下稳定启动
+- ⚠️ NPC AI 被禁用(无动物和科学家)
+- ⚠️ 建筑稳定性系统被禁用
+
 ## 故障排查
 
 **Q: 启动报错 `exec format error`?**
