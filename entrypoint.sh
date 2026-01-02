@@ -116,6 +116,8 @@ ARGS="$ARGS +server.worldsize $RUST_SERVER_WORLDSIZE"
 ARGS="$ARGS +server.maxplayers $RUST_SERVER_MAXPLAYERS"
 ARGS="$ARGS +server.saveinterval $RUST_SERVER_SAVEINTERVAL"
 ARGS="$ARGS +app.port $RUST_APP_PORT"
+# Workaround for Box64 Unity Physics/Occlusion crash
+ARGS="$ARGS +batchmode +server.occlusion 0 +physics.steps 60"
 
 if [ ! -z "$RUST_APP_PUBLICIP" ]; then
     ARGS="$ARGS +app.publicip $RUST_APP_PUBLICIP"
