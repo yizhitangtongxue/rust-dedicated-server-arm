@@ -104,6 +104,7 @@ ARGS="-batchmode -nographics"
 
 # Critical Unity engine fixes for Box64/ARM compatibility
 # These MUST use hyphens (-) as they are Unity engine parameters, not Rust server configs
+ARGS="$ARGS -noeac"                         # Disable Easy Anti-Cheat (EAC doesn't work in Box64)
 ARGS="$ARGS -disable-server-occlusion"      # Disable occlusion culling (prevents NRE in GenerateOcclusionGrid)
 ARGS="$ARGS -disable-server-occlusion-rocks"  # Skip rock meshes in occlusion grid bake
 ARGS="$ARGS -force-gfx-jobs native"         # Force native graphics jobs

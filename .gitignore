@@ -37,3 +37,4 @@ config.json
 simple-ftp-server-*
 *.zip
 .env
+up.log
