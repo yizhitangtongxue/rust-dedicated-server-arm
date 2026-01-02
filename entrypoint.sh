@@ -107,8 +107,10 @@ ARGS="-batchmode -nographics"
 ARGS="$ARGS -noeac"                         # Disable Easy Anti-Cheat (EAC doesn't work in Box64)
 ARGS="$ARGS -disable-server-occlusion"      # Disable occlusion culling (prevents NRE in GenerateOcclusionGrid)
 ARGS="$ARGS -disable-server-occlusion-rocks"  # Skip rock meshes in occlusion grid bake
+ARGS="$ARGS -disable-server-occlusion-grid" # Disable occlusion grid generation (fixes map image null)
 ARGS="$ARGS -force-gfx-jobs native"         # Force native graphics jobs
 ARGS="$ARGS -force-glcore"                  # Force OpenGL Core
+ARGS="$ARGS -logfile /home/steam/rust/server.log"  # Enable logging for debugging
 
 # Rust server configuration (Use plus signs for Rust server configs)
 ARGS="$ARGS +server.ip 0.0.0.0"
@@ -126,6 +128,7 @@ ARGS="$ARGS +server.headerimage \"$RUST_SERVER_BANNER_URL\""
 ARGS="$ARGS +server.worldsize $RUST_SERVER_WORLDSIZE"
 ARGS="$ARGS +server.maxplayers $RUST_SERVER_MAXPLAYERS"
 ARGS="$ARGS +server.saveinterval $RUST_SERVER_SAVEINTERVAL"
+ARGS="$ARGS +server.secure 0"               # Disable VAC (doesn't work in Box64)
 ARGS="$ARGS +app.port $RUST_APP_PORT"
 
 # Additional Rust server optimizations for Box64/ARM
