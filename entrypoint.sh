@@ -99,9 +99,17 @@ cd /home/steam/rust
 echo ">>> Launching RustDedicated via Box64..."
 
 # Construct launch arguments
-# Standard Unity flags (Use hyphens)
+# Unity flags (Use hyphens for Unity engine parameters)
 ARGS="-batchmode -nographics"
 
+# Critical Unity engine fixes for Box64/ARM compatibility
+# These MUST use hyphens (-) as they are Unity engine parameters, not Rust server configs
+ARGS="$ARGS -disable-server-occlusion"      # Disable occlusion culling (prevents NRE in GenerateOcclusionGrid)
+ARGS="$ARGS -disable-server-occlusion-rocks"  # Skip rock meshes in occlusion grid bake
+ARGS="$ARGS -force-gfx-jobs native"         # Force native graphics jobs
+ARGS="$ARGS -force-glcore"                  # Force OpenGL Core
+
+# Rust server configuration (Use plus signs for Rust server configs)
 ARGS="$ARGS +server.ip 0.0.0.0"
 ARGS="$ARGS +server.port $RUST_SERVER_PORT"
 ARGS="$ARGS +server.queryport $RUST_SERVER_QUERYPORT"
@@ -119,16 +127,12 @@ ARGS="$ARGS +server.maxplayers $RUST_SERVER_MAXPLAYERS"
 ARGS="$ARGS +server.saveinterval $RUST_SERVER_SAVEINTERVAL"
 ARGS="$ARGS +app.port $RUST_APP_PORT"
 
-# Critical Fixes for Box64/ARM
-# Disable multiple Unity/Rust features that cause issues in Box64 environment
-ARGS="$ARGS +server.occlusion 0"           # Disable occlusion culling (prevents NRE in GenerateOcclusionGrid)
-ARGS="$ARGS +physics.steps 60"             # Reduce physics complexity
-ARGS="$ARGS +ai.think false"               # Disable AI processing
-ARGS="$ARGS +ai.move false"                # Disable AI movement
-ARGS="$ARGS +server.stability false"       # Disable stability system
+# Additional Rust server optimizations for Box64/ARM
+ARGS="$ARGS +physics.steps 60"              # Reduce physics complexity
+ARGS="$ARGS +ai.think false"                # Disable AI processing
+ARGS="$ARGS +ai.move false"                 # Disable AI movement
+ARGS="$ARGS +server.stability false"        # Disable stability system
 ARGS="$ARGS +server.plantlightdetection false"  # Disable plant light detection
-ARGS="$ARGS -force-gfx-jobs native"        # Force native graphics jobs
-ARGS="$ARGS -force-glcore"                 # Force OpenGL Core
 
 if [ ! -z "$RUST_APP_PUBLICIP" ]; then
     ARGS="$ARGS +app.publicip $RUST_APP_PUBLICIP"
