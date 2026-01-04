@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     software-properties-common \
     gnupg2 \
     ca-certificates \
+    gcc-arm-linux-gnueabihf \
     && rm -rf /var/lib/apt/lists/* && \
     ln -s /usr/bin/python3 /usr/bin/python
 
@@ -27,6 +28,7 @@ RUN dpkg --add-architecture armhf && \
     libncurses5:armhf \
     libgcc-s1:armhf \
     libx11-6:armhf \
+    libc6-dev:armhf \
     && rm -rf /var/lib/apt/lists/*
 
 # Install x86_64 libraries for Rust Server (via Box64)
@@ -40,10 +42,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Build Box86 (for SteamCMD - 32-bit x86 emulator)
+# We use the cross-compiler to build a 32-bit ARM binary on a 64-bit host
 WORKDIR /tmp
 RUN git clone https://github.com/ptitSeb/box86 && \
     mkdir box86/build && cd box86/build && \
-    cmake .. -DARM64=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
+    cmake .. -DARM_DYNAREC=ON -DARM64=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc -DCMAKE_ASM_COMPILER=arm-linux-gnueabihf-gcc && \
     make -j$(nproc) && \
     make install && \
     cd /tmp && rm -rf box86
