@@ -25,14 +25,12 @@ if [ "${RUST_APP_UPDATE}" = "1" ]; then
     echo ">>> Updating Rust Server (AppID 258550)..."
     cd /home/steam/steamcmd
     
-    # Check if steamcmd exists (because volume mount might hide the pre-downloaded files)
     if [ ! -f "./linux32/steamcmd" ]; then
         echo ">>> SteamCMD not found in /home/steam/steamcmd (likely due to empty volume mount). Downloading..."
         curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
         chown -R steam:steam .
     fi
     
-    # Run steamcmd with box86 as steam user
     gosu steam box86 ./linux32/steamcmd \
         +login anonymous \
         +force_install_dir /home/steam/rust \
@@ -47,24 +45,33 @@ cd /home/steam/rust
 
 echo ">>> Launching RustDedicated via Box64..."
 
-# Construct launch arguments based on guide
-# We keep -noeac as it's critical for Box64 compatibility
-ARGS="-batchmode -noeac"
-ARGS="$ARGS +server.ip 0.0.0.0"
-ARGS="$ARGS +server.port $RUST_SERVER_PORT"
-ARGS="$ARGS +server.queryport $RUST_SERVER_QUERYPORT"
-ARGS="$ARGS +server.level \"$RUST_SERVER_LEVEL\""
-ARGS="$ARGS +server.worldsize $RUST_SERVER_WORLDSIZE"
-ARGS="$ARGS +server.seed $RUST_SERVER_SEED"
-ARGS="$ARGS +server.maxplayers $RUST_SERVER_MAXPLAYERS"
-ARGS="$ARGS +server.hostname \"$RUST_SERVER_NAME\""
-ARGS="$ARGS +server.identity \"$RUST_SERVER_IDENTITY\""
-ARGS="$ARGS +rcon.port $RUST_RCON_PORT"
-ARGS="$ARGS +rcon.password \"$RUST_RCON_PASSWORD\""
-ARGS="$ARGS +rcon.web 1"
+# We use an array for ARGS to handle spaces correctly
+ARGS=(
+    "-batchmode"
+    "-noeac"
+    "-nographics"
+    "-disable-server-occlusion"       # Critical fix for NRE in GenerateOcclusionGrid
+    "-disable-server-occlusion-rocks" # Skip rock meshes in occlusion
+    "-disable-server-occlusion-grid"  # Disable occlusion grid generation
+    "+server.ip" "0.0.0.0"
+    "+server.port" "$RUST_SERVER_PORT"
+    "+server.queryport" "$RUST_SERVER_QUERYPORT"
+    "+server.level" "$RUST_SERVER_LEVEL"
+    "+server.worldsize" "$RUST_SERVER_WORLDSIZE"
+    "+server.seed" "$RUST_SERVER_SEED"
+    "+server.maxplayers" "$RUST_SERVER_MAXPLAYERS"
+    "+server.hostname" "$RUST_SERVER_NAME"
+    "+server.identity" "$RUST_SERVER_IDENTITY"
+    "+rcon.port" "$RUST_RCON_PORT"
+    "+rcon.password" "$RUST_RCON_PASSWORD"
+    "+rcon.web" "1"
+)
 
 # Guide mentioned libtcmalloc_minimal.so.4 fix, ensure LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd):$(pwd)/bin:$(pwd)/RustDedicated_Data/Plugins/x86_64
 
-# Use exec to let the server process take over PID 1
-exec gosu steam box64 ./RustDedicated $ARGS
+# Force software rendering for Unity on Box64
+export UNITY_RENDERER=software
+export UNITY_DISABLE_RENDERING=1
+
+exec gosu steam box64 ./RustDedicated "${ARGS[@]}"
