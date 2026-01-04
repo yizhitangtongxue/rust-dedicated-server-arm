@@ -66,6 +66,19 @@ This project uses `network_mode: host`. Open these ports directly on your host f
 
 ## Changelog
 
+### 2026-01-04: Migrated to Ubuntu 20.04 and Simplified Environment
+
+**Improvements:**
+- **Base Image**: Switched from `ubuntu:22.04` to `ubuntu:20.04` (more stable LTS for this workload).
+- **Build Fix**: Added cross-compiler to `Dockerfile` to solve `box86` compilation errors on ARM64.
+- **Boot Logic**: Refactored `entrypoint.sh` to use Bash arrays, fixing issues with truncated parameters (e.g., `Procedural Map`).
+- **Resilience**: Added auto-download for `steamcmd` when mounted volumes are empty.
+- **Stability**: Refined Unity flags, specifically using `-disable-server-occlusion` to bypass `GenerateOcclusionGrid` NRE crashes on ARM.
+
+**Results:**
+- ✅ Server now loads maps correctly and reaches "Ready" state.
+- ✅ Client connectivity restored, fixing previous connection and crash issues.
+
 ### 2026-01-02: Fixed NullReferenceException Error
 
 **Issue:**  
