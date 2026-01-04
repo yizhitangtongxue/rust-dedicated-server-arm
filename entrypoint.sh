@@ -25,8 +25,14 @@ if [ "${RUST_APP_UPDATE}" = "1" ]; then
     echo ">>> Updating Rust Server (AppID 258550)..."
     cd /home/steam/steamcmd
     
+    # Check if steamcmd exists (because volume mount might hide the pre-downloaded files)
+    if [ ! -f "./linux32/steamcmd" ]; then
+        echo ">>> SteamCMD not found in /home/steam/steamcmd (likely due to empty volume mount). Downloading..."
+        curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
+        chown -R steam:steam .
+    fi
+    
     # Run steamcmd with box86 as steam user
-    # Note: Guide uses anonymous login
     gosu steam box86 ./linux32/steamcmd \
         +login anonymous \
         +force_install_dir /home/steam/rust \
