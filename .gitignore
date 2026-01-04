@@ -38,3 +38,5 @@ simple-ftp-server-*
 *.zip
 .env
 up.log
+docs/Gemini-Box64 运行 Rust 服务器指南.md 18-15-46-123.md
+docs/Docker.md

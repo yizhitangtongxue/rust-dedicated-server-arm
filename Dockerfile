@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:20.04
 
 # Avoid interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
@@ -15,11 +15,10 @@ RUN apt-get update && apt-get install -y \
     software-properties-common \
     gnupg2 \
     ca-certificates \
-    gcc-arm-linux-gnueabihf \
     && rm -rf /var/lib/apt/lists/* && \
     ln -s /usr/bin/python3 /usr/bin/python
 
-# Enable 32-bit ARM architecture (armhf) for Box86
+# Enable 32-bit ARM architecture (armhf) for Box86 (needed for SteamCMD)
 RUN dpkg --add-architecture armhf && \
     apt-get update && \
     apt-get install -y \
@@ -28,34 +27,28 @@ RUN dpkg --add-architecture armhf && \
     libncurses5:armhf \
     libgcc-s1:armhf \
     libx11-6:armhf \
-    libc6-dev:armhf \
-    libstdc++-11-dev:armhf \
     && rm -rf /var/lib/apt/lists/*
 
 # Install x86_64 libraries for Rust Server (via Box64)
-# Note: Box64 often uses native arm64 libs where possible, but some specific libs might be needed.
-# For now we rely on Box64's ability to wrap native libs.
-# Also install Mesa graphics libraries for Unity engine software rendering support
+# Plus libraries mentioned in the guide (libgoogle-perftools4 for libtcmalloc_minimal)
 RUN apt-get update && apt-get install -y \
     libsqlite3-0 \
-    libgoogle-perftools4 \
+    libgoogle-perftools4:arm64 \
     gosu \
     libgl1-mesa-glx \
     libgl1-mesa-dri \
     && rm -rf /var/lib/apt/lists/*
 
-# Build Box86 (for SteamCMD)
-# Targeting ARM64 host to run x86 (32-bit) binaries
+# Build Box86 (for SteamCMD - 32-bit x86 emulator)
 WORKDIR /tmp
 RUN git clone https://github.com/ptitSeb/box86 && \
     mkdir box86/build && cd box86/build && \
-    cmake .. -DARM_DYNAREC=ON -DARM64=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc -DCMAKE_ASM_COMPILER=arm-linux-gnueabihf-gcc && \
+    cmake .. -DARM64=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
     make -j$(nproc) && \
     make install && \
     cd /tmp && rm -rf box86
 
-# Build Box64 (for Rust Server)
-# Targeting ARM64 host to run x86_64 binaries
+# Build Box64 (for Rust Server - 64-bit x86_64 emulator)
 WORKDIR /tmp
 RUN git clone https://github.com/ptitSeb/box64 && \
     mkdir box64/build && cd box64/build && \
@@ -66,34 +59,27 @@ RUN git clone https://github.com/ptitSeb/box64 && \
 
 # Setup user
 RUN useradd -m -d /home/steam -s /bin/bash steam
-# USER steam (We stay as root to fix permissions in entrypoint)
 WORKDIR /home/steam
 
 # Create directory for SteamCMD and Server
-RUN mkdir -p /home/steam/steamcmd /home/steam/rust
+RUN mkdir -p /home/steam/steamcmd /home/steam/rust && \
+    chown -R steam:steam /home/steam/steamcmd /home/steam/rust
 
 # Download SteamCMD
+USER steam
 WORKDIR /home/steam/steamcmd
 RUN curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
 
+USER root
 # Copy entrypoint script
 COPY --chown=steam:steam entrypoint.sh /home/steam/entrypoint.sh
 RUN chmod +x /home/steam/entrypoint.sh
 
 # Environment variables
-ENV LD_LIBRARY_PATH=/lib/i386-linux-gnu:/usr/lib/i386-linux-gnu:/usr/lib/arm-linux-gnueabihf:/usr/lib/aarch64-linux-gnu
-# Ensure Box86 and Box64 are used
 ENV BOX86_LOG=0
 ENV BOX64_LOG=0
 
-# Box64 environment variables for improved stability with Unity engine
-# These settings use more conservative dynarec options to prevent crashes
+# Improved stability parameters (Minimal set for Unity on Box64)
 ENV BOX64_DYNAREC_STRONGMEM=3
-ENV BOX64_DYNAREC_BIGBLOCK=0
-ENV BOX64_DYNAREC_SAFEFLAGS=0
-ENV BOX64_DYNAREC_FASTNAN=0
-ENV BOX64_DYNAREC_FASTROUND=0
-ENV BOX64_DYNAREC_X87DOUBLE=1
-ENV BOX64_DYNAREC_BLEEDING_EDGE=0
 
 ENTRYPOINT ["/home/steam/entrypoint.sh"]
